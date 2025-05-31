@@ -8,6 +8,7 @@ import (
 
 	"github.com/Pra1tik/golox/ast"
 	"github.com/Pra1tik/golox/lexer"
+	"github.com/Pra1tik/golox/parser"
 )
 
 var (
@@ -68,21 +69,26 @@ func run(source string) {
 		fmt.Println(token.Lexeme)
 	}
 
-	// pretty printer
-	expression := ast.BinaryExpr{
-		Left: ast.LiteralExpr{Value: "123"},
-		Operator: ast.Token{
-			TokenType: ast.TokenMinus,
-			Lexeme:    "-",
-			Literal:   nil,
-			Line:      1,
-			Start:     0,
-		},
-		Right: ast.LiteralExpr{Value: "456"},
-	}
+	// pretty printer test
+	// expression := ast.BinaryExpr{
+	// 	Left: ast.LiteralExpr{Value: "123"},
+	// 	Operator: ast.Token{
+	// 		TokenType: ast.TokenMinus,
+	// 		Lexeme:    "-",
+	// 		Literal:   nil,
+	// 		Line:      1,
+	// 		Start:     0,
+	// 	},
+	// 	Right: ast.LiteralExpr{Value: "456"},
+	// }
 
+	// printer := ast.AstPrinter{}
+	// fmt.Println("Print: ", printer.Print(expression))
+
+	parser := parser.CreateParser(tokens, stdErr)
+	expression := parser.Parse()
 	printer := ast.AstPrinter{}
-	fmt.Println("Print: ", printer.Print(expression))
+	fmt.Println("Parsed result: ", printer.Print(expression))
 }
 
 func errorFunc(line int, message string) {

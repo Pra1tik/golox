@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -38,10 +39,7 @@ func (p AstPrinter) parenthesize(name string, exprs ...Expr) string {
 	for _, expr := range exprs {
 		builder.WriteString(" ")
 		result := expr.Accept(p)
-		strResult, ok := result.(string)
-		if !ok {
-			strResult = "<error>"
-		}
+		strResult := fmt.Sprintf("%v", result)
 		builder.WriteString(strResult)
 	}
 
