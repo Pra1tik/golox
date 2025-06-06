@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	hadError bool
-	stdErr   io.Writer
+	hadError        bool
+	hadRuntimeError bool
+	stdErr          io.Writer
 )
 
 func main() {
