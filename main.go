@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/Pra1tik/golox/ast"
+	"github.com/Pra1tik/golox/interpret"
 	"github.com/Pra1tik/golox/lexer"
 	"github.com/Pra1tik/golox/parser"
 )
@@ -15,6 +16,7 @@ var (
 	hadError        bool
 	hadRuntimeError bool
 	stdErr          io.Writer
+	stdOut          io.Writer
 )
 
 func main() {
@@ -39,10 +41,13 @@ func checkError(err error) {
 func runFile(path string) {
 	source, err := os.ReadFile(path)
 	checkError(err)
-	run(string(source))
 
+	run(string(source))
 	if hadError {
 		os.Exit(65)
+	}
+	if hadRuntimeError {
+		os.Exit(70)
 	}
 }
 
@@ -55,41 +60,34 @@ func runPrompt() {
 		}
 
 		line := inputScanner.Text()
-		run(line)
+		fmt.Println(run(line))
 		hadError = false // mistake shouldn't kill the entire session
 	}
 }
 
-func run(source string) {
+func run(source string) interface{} {
 	stdErr = os.Stderr
+	stdOut = os.Stdout
 	lexer := lexer.CreateScanner(source, stdErr)
 	tokens := lexer.ScanTokens()
 
 	// print tokens
-	for _, token := range tokens {
-		fmt.Println(token.Lexeme)
-	}
-
-	// pretty printer test
-	// expression := ast.BinaryExpr{
-	// 	Left: ast.LiteralExpr{Value: "123"},
-	// 	Operator: ast.Token{
-	// 		TokenType: ast.TokenMinus,
-	// 		Lexeme:    "-",
-	// 		Literal:   nil,
-	// 		Line:      1,
-	// 		Start:     0,
-	// 	},
-	// 	Right: ast.LiteralExpr{Value: "456"},
+	// for _, token := range tokens {
+	// 	fmt.Println(token.Lexeme)
 	// }
 
-	// printer := ast.AstPrinter{}
-	// fmt.Println("Print: ", printer.Print(expression))
-
 	parser := parser.CreateParser(tokens, stdErr)
-	expression := parser.Parse()
-	printer := ast.AstPrinter{}
-	fmt.Println("Parsed result: ", printer.Print(expression))
+	var statements []ast.Stmt
+	statements, hadError = parser.Parse()
+
+	if hadError {
+		return nil
+	}
+
+	interpreter := interpret.CreateInterpreter(stdOut, stdErr)
+	var result interface{}
+	result, hadRuntimeError = interpreter.Interpret(statements)
+	return result
 }
 
 func errorFunc(line int, message string) {

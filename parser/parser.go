@@ -7,6 +7,10 @@ import (
 	"github.com/Pra1tik/golox/ast"
 )
 
+// program → statement* EOF ;
+// statement → exprStmt | printStmt ;
+// exprStmt → expression ";" ;
+// printStmt → "print" expression ";" ;
 // expression → equality ;
 // equality → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
@@ -17,17 +21,42 @@ import (
 // 		|  "(" expression ")" ;
 
 type Parser struct {
-	tokens  []ast.Token
-	current int
-	stdErr  io.Writer
+	tokens   []ast.Token
+	current  int
+	stdErr   io.Writer
+	hadError bool
 }
 
 func CreateParser(tokens []ast.Token, stdErr io.Writer) *Parser {
 	return &Parser{tokens: tokens, stdErr: stdErr}
 }
 
-func (p *Parser) Parse() ast.Expr {
-	return p.expression()
+func (p *Parser) Parse() ([]ast.Stmt, bool) {
+	var statements []ast.Stmt
+	for !p.isAtEnd() {
+		stmt := p.statement()
+		statements = append(statements, stmt)
+	}
+	return statements, p.hadError
+}
+
+func (p *Parser) statement() ast.Stmt {
+	if p.match(ast.TokenPrint) {
+		return p.printStatement()
+	}
+	return p.expressionStatement()
+}
+
+func (p *Parser) printStatement() ast.Stmt {
+	expr := p.expression()
+	p.consume(ast.TokenSemicolon, "Expected token ';' after value")
+	return ast.PrintStmt{Expr: expr}
+}
+
+func (p *Parser) expressionStatement() ast.Stmt {
+	expr := p.expression()
+	p.consume(ast.TokenSemicolon, "Expected token ';' after value")
+	return ast.ExpressionStmt{Expr: expr}
 }
 
 func (p *Parser) expression() ast.Expr {
@@ -124,9 +153,9 @@ func (p *Parser) consume(tokenType ast.TokenType, message string) ast.Token {
 func (p *Parser) error(token ast.Token, message string) {
 	var where string
 	if token.TokenType == ast.TokenEof {
-		where = "at end"
+		where = " at end"
 	} else {
-		where = "at '" + token.Lexeme + "'"
+		where = " at '" + token.Lexeme + "'"
 	}
 
 	err := fmt.Sprintf("[line %d] Error%s: %s\n", token.Line+1, where, message)

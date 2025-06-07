@@ -25,7 +25,7 @@ func CreateInterpreter(stdOut io.Writer, stdErr io.Writer) *Interpreter {
 	return &Interpreter{stdOut: stdOut, stdErr: stdErr}
 }
 
-func (interp *Interpreter) Interpret(expr ast.Expr) (result interface{}, hadRuntimeError bool) {
+func (interp *Interpreter) Interpret(stmts []ast.Stmt) (result interface{}, hadRuntimeError bool) {
 	defer func() {
 		if err := recover(); err != nil {
 			if e, ok := err.(runtimeError); ok {
@@ -37,12 +37,28 @@ func (interp *Interpreter) Interpret(expr ast.Expr) (result interface{}, hadRunt
 		}
 	}()
 
-	result = interp.evaluate(expr)
+	for _, statement := range stmts {
+		result = interp.execute(statement)
+	}
 	return
+}
+
+func (interp *Interpreter) execute(stmt ast.Stmt) interface{} {
+	return stmt.Accept(interp)
 }
 
 func (interp *Interpreter) evaluate(expr ast.Expr) interface{} {
 	return expr.Accept(interp)
+}
+
+func (interp *Interpreter) VisitPrintStmt(stmt ast.PrintStmt) interface{} {
+	value := interp.evaluate(stmt.Expr)
+	_, _ = interp.stdOut.Write([]byte(interp.stringify(value) + "\n"))
+	return nil
+}
+
+func (interp *Interpreter) VisitExpressionStmt(stmt ast.ExpressionStmt) interface{} {
+	return interp.evaluate(stmt.Expr)
 }
 
 func (interp *Interpreter) VisitLiteralExpr(expr ast.LiteralExpr) interface{} {
@@ -132,6 +148,13 @@ func (interp *Interpreter) isTruthy(val interface{}) bool {
 		return v
 	}
 	return true
+}
+
+func (interp *Interpreter) stringify(value interface{}) string {
+	if value == nil {
+		return "nil"
+	}
+	return fmt.Sprint(value)
 }
 
 func (interp *Interpreter) error(token ast.Token, message string) {
