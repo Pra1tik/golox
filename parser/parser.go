@@ -9,11 +9,13 @@ import (
 
 // program → declaration* EOF ;
 // declaration → varDecl | statement;
-// statement → exprStmt | printStmt | block ;
+// statement → exprStmt | printStmt | block | ifStmt ;
 // block → "{" declaration* "}" ;
 // varDecl → "var" IDENTIFIER ( "=" expression )? ";" ;
 // exprStmt → expression ";" ;
 // printStmt → "print" expression ";" ;
+// ifStmt → "if" "(" expression ")" statement
+//          ( "else" statement )? ;
 // expression → assignment ;
 // assignment -> IDENTIFIER "=" assignment | equality ;
 // equality → comparison ( ( "!=" | "==" ) comparison )* ;
@@ -71,6 +73,9 @@ func (p *Parser) statement() ast.Stmt {
 		stmt := p.block()
 		return ast.BlockStmt{Statements: stmt}
 	}
+	if p.match(ast.TokenIf) {
+		return p.ifStatement()
+	}
 	return p.expressionStatement()
 }
 
@@ -78,6 +83,20 @@ func (p *Parser) printStatement() ast.Stmt {
 	expr := p.expression()
 	p.consume(ast.TokenSemicolon, "Expected token ';' after value")
 	return ast.PrintStmt{Expr: expr}
+}
+
+func (p *Parser) ifStatement() ast.Stmt {
+	p.consume(ast.TokenLeftParen, "Expect '(' after 'if'.")
+	condition := p.expression()
+	p.consume(ast.TokenRightParen, "Expect ')' after if condition.")
+
+	thenBranch := p.statement()
+	var elseBranch ast.Stmt
+	if p.match(ast.TokenElse) {
+		elseBranch = p.statement()
+	}
+
+	return ast.IfStmt{Condition: condition, ThenBranch: thenBranch, ElseBranch: elseBranch}
 }
 
 func (p *Parser) expressionStatement() ast.Stmt {

@@ -75,6 +75,15 @@ func (interp *Interpreter) VisitBlockStmt(stmt ast.BlockStmt) interface{} {
 	return nil
 }
 
+func (interp *Interpreter) VisitIfStmt(stmt ast.IfStmt) interface{} {
+	if interp.isTruthy(interp.evaluate(stmt.Condition)) {
+		interp.execute(stmt.ThenBranch)
+	} else if stmt.ElseBranch != nil {
+		interp.execute(stmt.ElseBranch)
+	}
+	return nil
+}
+
 func (interp *Interpreter) VisitAssignExpr(expr ast.AssignExpr) interface{} {
 	value := interp.evaluate(expr.Value)
 	interp.environment.Assign(expr.Name.Lexeme, value)
