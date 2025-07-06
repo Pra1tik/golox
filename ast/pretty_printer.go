@@ -1,49 +1,49 @@
 package ast
 
-import (
-	"fmt"
-	"strings"
-)
+// import (
+// 	"fmt"
+// 	"strings"
+// )
 
-type AstPrinter struct{}
+// type AstPrinter struct{}
 
-func (p AstPrinter) Print(expr Expr) string {
-	return expr.Accept(p).(string)
-}
+// func (p AstPrinter) Print(expr Expr) string {
+// 	return expr.Accept(p).(string)
+// }
 
-func (p AstPrinter) VisitBinaryExpr(expr BinaryExpr) interface{} {
-	return p.parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right)
-}
+// func (p AstPrinter) VisitBinaryExpr(expr BinaryExpr) interface{} {
+// 	return p.parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right)
+// }
 
-func (p AstPrinter) VisitGroupingExpr(expr GroupingExpr) interface{} {
-	return p.parenthesize("group", expr.Expression)
-}
+// func (p AstPrinter) VisitGroupingExpr(expr GroupingExpr) interface{} {
+// 	return p.parenthesize("group", expr.Expression)
+// }
 
-func (p AstPrinter) VisitLiteralExpr(expr LiteralExpr) interface{} {
-	if expr.Value == nil {
-		return "nil"
-	}
-	return expr.Value
-}
+// func (p AstPrinter) VisitLiteralExpr(expr LiteralExpr) interface{} {
+// 	if expr.Value == nil {
+// 		return "nil"
+// 	}
+// 	return expr.Value
+// }
 
-func (p AstPrinter) VisitUnaryExpr(expr UnaryExpr) interface{} {
-	return p.parenthesize(expr.Operator.Lexeme, expr.Right)
-}
+// func (p AstPrinter) VisitUnaryExpr(expr UnaryExpr) interface{} {
+// 	return p.parenthesize(expr.Operator.Lexeme, expr.Right)
+// }
 
-func (p AstPrinter) parenthesize(name string, exprs ...Expr) string {
-	var builder strings.Builder
+// func (p AstPrinter) parenthesize(name string, exprs ...Expr) string {
+// 	var builder strings.Builder
 
-	builder.WriteString("(")
-	builder.WriteString(name)
+// 	builder.WriteString("(")
+// 	builder.WriteString(name)
 
-	for _, expr := range exprs {
-		builder.WriteString(" ")
-		result := expr.Accept(p)
-		strResult := fmt.Sprintf("%v", result)
-		builder.WriteString(strResult)
-	}
+// 	for _, expr := range exprs {
+// 		builder.WriteString(" ")
+// 		result := expr.Accept(p)
+// 		strResult := fmt.Sprintf("%v", result)
+// 		builder.WriteString(strResult)
+// 	}
 
-	builder.WriteString(")")
+// 	builder.WriteString(")")
 
-	return builder.String()
-}
+// 	return builder.String()
+// }

@@ -7,18 +7,22 @@ import (
 	"github.com/Pra1tik/golox/ast"
 )
 
-// program → statement* EOF ;
-// statement → exprStmt | printStmt ;
+// program → declaration* EOF ;
+// declaration → varDecl | statement;
+// statement → exprStmt | printStmt | block ;
+// block → "{" declaration* "}" ;
+// varDecl → "var" IDENTIFIER ( "=" expression )? ";" ;
 // exprStmt → expression ";" ;
 // printStmt → "print" expression ";" ;
-// expression → equality ;
+// expression → assignment ;
+// assignment -> IDENTIFIER "=" assignment | equality ;
 // equality → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term → factor ( ( "-" | "+" ) factor )* ;
 // factor → unary ( ( "/" | "*" ) unary )* ;
 // unary → ( "!" | "-" ) unary | primary ;
 // primary → NUMBER | STRING | "true" | "false" | "nil"
-// 		|  "(" expression ")" ;
+// 		|  "(" expression ")" | IDENTIFIER;
 
 type Parser struct {
 	tokens   []ast.Token
@@ -34,15 +38,38 @@ func CreateParser(tokens []ast.Token, stdErr io.Writer) *Parser {
 func (p *Parser) Parse() ([]ast.Stmt, bool) {
 	var statements []ast.Stmt
 	for !p.isAtEnd() {
-		stmt := p.statement()
+		stmt := p.declaration()
 		statements = append(statements, stmt)
 	}
 	return statements, p.hadError
 }
 
+func (p *Parser) declaration() ast.Stmt {
+
+	if p.match(ast.TokenVar) {
+		return p.varDeclaration()
+	}
+	return p.statement()
+}
+
+func (p *Parser) varDeclaration() ast.Stmt {
+	var_name := p.consume(ast.TokenIdentifier, "Expected variable name")
+
+	var initializer ast.Expr
+	if p.match(ast.TokenEqual) {
+		initializer = p.expression()
+	}
+	p.consume(ast.TokenSemicolon, "Expected token ';' after value")
+	return ast.VarStmt{Name: var_name, Initializer: initializer}
+}
+
 func (p *Parser) statement() ast.Stmt {
 	if p.match(ast.TokenPrint) {
 		return p.printStatement()
+	}
+	if p.match(ast.TokenLeftBrace) {
+		stmt := p.block()
+		return ast.BlockStmt{Statements: stmt}
 	}
 	return p.expressionStatement()
 }
@@ -60,7 +87,34 @@ func (p *Parser) expressionStatement() ast.Stmt {
 }
 
 func (p *Parser) expression() ast.Expr {
-	return p.equality()
+	return p.assignment()
+}
+
+func (p *Parser) block() []ast.Stmt {
+	var statements []ast.Stmt
+	for !p.check(ast.TokenRightBrace) && !p.isAtEnd() {
+		stmt := p.declaration()
+		statements = append(statements, stmt)
+	}
+	p.consume(ast.TokenRightBrace, "Expected '}' after block")
+	return statements
+}
+
+func (p *Parser) assignment() ast.Expr {
+	expr := p.equality()
+
+	if p.match(ast.TokenEqual) {
+		equals := p.previous()
+		value := p.assignment()
+
+		if varExpr, ok := expr.(ast.VariableExpr); ok {
+			return ast.AssignExpr{Name: varExpr.Name, Value: value}
+		}
+
+		p.error(equals, "Invalid assignment target.")
+	}
+
+	return expr
 }
 
 func (p *Parser) equality() ast.Expr {
@@ -131,6 +185,8 @@ func (p *Parser) primary() ast.Expr {
 		return ast.LiteralExpr{Value: nil}
 	case p.match(ast.TokenNumber, ast.TokenString):
 		return ast.LiteralExpr{Value: p.previous().Literal}
+	case p.match(ast.TokenIdentifier):
+		return ast.VariableExpr{Name: p.previous()}
 	case p.match(ast.TokenLeftParen):
 		expr := p.expression()
 		p.consume(ast.TokenRightParen, "Expected ) after expression.")

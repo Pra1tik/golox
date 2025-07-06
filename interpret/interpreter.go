@@ -5,11 +5,13 @@ import (
 	"io"
 
 	"github.com/Pra1tik/golox/ast"
+	env "github.com/Pra1tik/golox/environment"
 )
 
 type Interpreter struct {
-	stdOut io.Writer
-	stdErr io.Writer
+	environment *env.Environment
+	stdOut      io.Writer
+	stdErr      io.Writer
 }
 
 type runtimeError struct {
@@ -22,7 +24,9 @@ func (r runtimeError) Error() string {
 }
 
 func CreateInterpreter(stdOut io.Writer, stdErr io.Writer) *Interpreter {
-	return &Interpreter{stdOut: stdOut, stdErr: stdErr}
+	globals := env.CreateEnvironment(nil)
+
+	return &Interpreter{environment: globals, stdOut: stdOut, stdErr: stdErr}
 }
 
 func (interp *Interpreter) Interpret(stmts []ast.Stmt) (result interface{}, hadRuntimeError bool) {
@@ -51,10 +55,30 @@ func (interp *Interpreter) evaluate(expr ast.Expr) interface{} {
 	return expr.Accept(interp)
 }
 
+func (interp *Interpreter) VisitVarStmt(stmt ast.VarStmt) interface{} {
+	var val interface{}
+	if stmt.Initializer != nil {
+		val = interp.evaluate(stmt.Initializer)
+	}
+	interp.environment.Define(stmt.Name.Lexeme, val)
+	return nil
+}
+
 func (interp *Interpreter) VisitPrintStmt(stmt ast.PrintStmt) interface{} {
 	value := interp.evaluate(stmt.Expr)
 	_, _ = interp.stdOut.Write([]byte(interp.stringify(value) + "\n"))
 	return nil
+}
+
+func (interp *Interpreter) VisitBlockStmt(stmt ast.BlockStmt) interface{} {
+	interp.executeBlock(stmt.Statements, env.CreateEnvironment(interp.environment))
+	return nil
+}
+
+func (interp *Interpreter) VisitAssignExpr(expr ast.AssignExpr) interface{} {
+	value := interp.evaluate(expr.Value)
+	interp.environment.Assign(expr.Name.Lexeme, value)
+	return value
 }
 
 func (interp *Interpreter) VisitExpressionStmt(stmt ast.ExpressionStmt) interface{} {
@@ -80,6 +104,14 @@ func (interp *Interpreter) VisitUnaryExpr(expr ast.UnaryExpr) interface{} {
 		return !interp.isTruthy(right)
 	}
 	return nil
+}
+
+func (interp *Interpreter) VisitVariableExpr(expr ast.VariableExpr) interface{} {
+	val, err := interp.environment.Get(expr.Name.Lexeme)
+	if err != nil {
+		panic(err)
+	}
+	return val
 }
 
 func (interp *Interpreter) VisitBinaryExpr(expr ast.BinaryExpr) interface{} {
@@ -130,6 +162,18 @@ func (interp *Interpreter) VisitBinaryExpr(expr ast.BinaryExpr) interface{} {
 	}
 
 	return nil
+}
+
+func (interp *Interpreter) executeBlock(statements []ast.Stmt, env *env.Environment) {
+	previous := interp.environment
+	defer func() {
+		interp.environment = previous
+	}()
+
+	interp.environment = env
+	for _, statement := range statements {
+		interp.execute(statement)
+	}
 }
 
 func (interp *Interpreter) checkOperands(operator ast.Token, operands ...interface{}) {
