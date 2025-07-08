@@ -84,6 +84,13 @@ func (interp *Interpreter) VisitIfStmt(stmt ast.IfStmt) interface{} {
 	return nil
 }
 
+func (interp *Interpreter) VisitWhileStmt(stmt ast.WhileStmt) interface{} {
+	for interp.isTruthy(interp.evaluate(stmt.Condition)) {
+		interp.execute(stmt.Body)
+	}
+	return nil
+}
+
 func (interp *Interpreter) VisitAssignExpr(expr ast.AssignExpr) interface{} {
 	value := interp.evaluate(expr.Value)
 	interp.environment.Assign(expr.Name.Lexeme, value)

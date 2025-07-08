@@ -47,10 +47,20 @@ func (b IfStmt) Accept(visitor StmtVisitor) interface{} {
 	return visitor.VisitIfStmt(b)
 }
 
+type WhileStmt struct {
+	Condition Expr
+	Body      Stmt
+}
+
+func (b WhileStmt) Accept(visitor StmtVisitor) interface{} {
+	return visitor.VisitWhileStmt(b)
+}
+
 type StmtVisitor interface {
 	VisitExpressionStmt(stmt ExpressionStmt) interface{}
 	VisitPrintStmt(stmt PrintStmt) interface{}
 	VisitVarStmt(stmt VarStmt) interface{}
 	VisitBlockStmt(stmt BlockStmt) interface{}
 	VisitIfStmt(stmt IfStmt) interface{}
+	VisitWhileStmt(stmt WhileStmt) interface{}
 }
