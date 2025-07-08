@@ -4,6 +4,7 @@ package ast
 // "Grouping : Expr expression",
 // "Literal  : Object value",
 // "Unary    : Token operator, Expr right"
+// "Logical  : Expr left, Token operator, Expr right"
 
 type Expr interface {
 	Accept(visitor ExprVisitor) interface{}
@@ -44,6 +45,16 @@ func (b UnaryExpr) Accept(visitor ExprVisitor) interface{} {
 	return visitor.VisitUnaryExpr(b)
 }
 
+type LogicalExpr struct {
+	Left     Expr
+	Operator Token
+	Right    Expr
+}
+
+func (b LogicalExpr) Accept(visitor ExprVisitor) interface{} {
+	return visitor.VisitLogicalExpr(b)
+}
+
 type VariableExpr struct {
 	Name Token
 }
@@ -68,4 +79,5 @@ type ExprVisitor interface {
 	VisitUnaryExpr(expr UnaryExpr) interface{}
 	VisitVariableExpr(expr VariableExpr) interface{}
 	VisitAssignExpr(expr AssignExpr) interface{}
+	VisitLogicalExpr(expr LogicalExpr) interface{}
 }

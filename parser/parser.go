@@ -17,7 +17,9 @@ import (
 // ifStmt → "if" "(" expression ")" statement
 //          ( "else" statement )? ;
 // expression → assignment ;
-// assignment -> IDENTIFIER "=" assignment | equality ;
+// assignment → IDENTIFIER "=" assignment | logic_or ;
+// logic_or → logic_and ( "or" logic_and )* ;
+// logic_and → equality ( "and" equality )* ;
 // equality → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term → factor ( ( "-" | "+" ) factor )* ;
@@ -120,7 +122,7 @@ func (p *Parser) block() []ast.Stmt {
 }
 
 func (p *Parser) assignment() ast.Expr {
-	expr := p.equality()
+	expr := p.or()
 
 	if p.match(ast.TokenEqual) {
 		equals := p.previous()
@@ -133,6 +135,28 @@ func (p *Parser) assignment() ast.Expr {
 		p.error(equals, "Invalid assignment target.")
 	}
 
+	return expr
+}
+
+func (p *Parser) or() ast.Expr {
+	expr := p.and()
+
+	for p.match(ast.TokenOr) {
+		operator := p.previous()
+		right := p.and()
+		expr = ast.LogicalExpr{Left: expr, Operator: operator, Right: right}
+	}
+	return expr
+}
+
+func (p *Parser) and() ast.Expr {
+	expr := p.equality()
+
+	for p.match(ast.TokenAnd) {
+		operator := p.previous()
+		right := p.and()
+		expr = ast.LogicalExpr{Left: expr, Operator: operator, Right: right}
+	}
 	return expr
 }
 

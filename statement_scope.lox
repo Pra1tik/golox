@@ -17,3 +17,5 @@ print c;
 print a;
 print b;
 print c;
+
+//go run -gcflags -m app.go

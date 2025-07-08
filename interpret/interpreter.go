@@ -173,6 +173,21 @@ func (interp *Interpreter) VisitBinaryExpr(expr ast.BinaryExpr) interface{} {
 	return nil
 }
 
+func (interp *Interpreter) VisitLogicalExpr(expr ast.LogicalExpr) interface{} {
+	left := interp.evaluate(expr.Left)
+
+	if expr.Operator.TokenType == ast.TokenOr {
+		if interp.isTruthy(left) {
+			return left
+		}
+	} else {
+		if !interp.isTruthy(left) {
+			return left
+		}
+	}
+	return interp.evaluate(expr.Right)
+}
+
 func (interp *Interpreter) executeBlock(statements []ast.Stmt, env *env.Environment) {
 	previous := interp.environment
 	defer func() {
