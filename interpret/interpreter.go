@@ -10,6 +10,7 @@ import (
 
 type Interpreter struct {
 	environment *env.Environment
+	globals     *env.Environment
 	stdOut      io.Writer
 	stdErr      io.Writer
 }
@@ -25,8 +26,9 @@ func (r runtimeError) Error() string {
 
 func CreateInterpreter(stdOut io.Writer, stdErr io.Writer) *Interpreter {
 	globals := env.CreateEnvironment(nil)
+	globals.Define("clock", clock{})
 
-	return &Interpreter{environment: globals, stdOut: stdOut, stdErr: stdErr}
+	return &Interpreter{globals: globals, environment: globals, stdOut: stdOut, stdErr: stdErr}
 }
 
 func (interp *Interpreter) Interpret(stmts []ast.Stmt) (result interface{}, hadRuntimeError bool) {
@@ -91,6 +93,12 @@ func (interp *Interpreter) VisitWhileStmt(stmt ast.WhileStmt) interface{} {
 	return nil
 }
 
+func (interp *Interpreter) VisitFunctionStmt(stmt ast.FunctionStmt) interface{} {
+	function := function{declaration: stmt}
+	interp.environment.Define(stmt.Name.Lexeme, function)
+	return nil
+}
+
 func (interp *Interpreter) VisitAssignExpr(expr ast.AssignExpr) interface{} {
 	value := interp.evaluate(expr.Value)
 	interp.environment.Assign(expr.Name.Lexeme, value)
@@ -128,6 +136,26 @@ func (interp *Interpreter) VisitVariableExpr(expr ast.VariableExpr) interface{} 
 		panic(err)
 	}
 	return val
+}
+
+func (interp *Interpreter) VisitCallExpr(expr ast.CallExpr) interface{} {
+	callee := interp.evaluate(expr.Callee)
+
+	args := make([]interface{}, len(expr.Arguments))
+	for i, arg := range expr.Arguments {
+		args[i] = interp.evaluate(arg)
+	}
+
+	fn, ok := callee.(callable)
+	if !ok {
+		interp.error(expr.Paren, "Can only call function and classes.")
+	}
+
+	if len(args) != fn.arity() {
+		interp.error(expr.Paren, fmt.Sprintf("Expected %d arguments but got %d.", fn.arity(), len(args)))
+	}
+
+	return fn.call(interp, args)
 }
 
 func (interp *Interpreter) VisitBinaryExpr(expr ast.BinaryExpr) interface{} {

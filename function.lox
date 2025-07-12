@@ -1,0 +1,9 @@
+//fun sayHi(first, last) {
+//print "Hi, " + first + " " + last + "!";
+//}
+//sayHi("Dear", "Reader");
+
+fun add(a, b) {
+print a + b;
+}
+print add; // "<fn add>".

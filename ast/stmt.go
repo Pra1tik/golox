@@ -56,6 +56,16 @@ func (b WhileStmt) Accept(visitor StmtVisitor) interface{} {
 	return visitor.VisitWhileStmt(b)
 }
 
+type FunctionStmt struct {
+	Name   Token
+	Params []Token
+	Body   []Stmt
+}
+
+func (b FunctionStmt) Accept(visitor StmtVisitor) interface{} {
+	return visitor.VisitFunctionStmt(b)
+}
+
 type StmtVisitor interface {
 	VisitExpressionStmt(stmt ExpressionStmt) interface{}
 	VisitPrintStmt(stmt PrintStmt) interface{}
@@ -63,4 +73,5 @@ type StmtVisitor interface {
 	VisitBlockStmt(stmt BlockStmt) interface{}
 	VisitIfStmt(stmt IfStmt) interface{}
 	VisitWhileStmt(stmt WhileStmt) interface{}
+	VisitFunctionStmt(stmt FunctionStmt) interface{}
 }

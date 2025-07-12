@@ -8,8 +8,12 @@ import (
 )
 
 // program → declaration* EOF ;
-// declaration → varDecl | statement;
-// statement → exprStmt | printStmt | block | ifStmt | whileStmt | forStmt ;
+// declaration → varDecl | statement | funDecl ;
+// funDecl → "fun" function ;
+// function → IDENTIFIER "(" parameters? ")" block ;
+// parameters → IDENTIFIER ( "," IDENTIFIER )* ;
+// statement → exprStmt | printStmt | block | ifStmt
+// 			 | whileStmt | forStmt ;
 // block → "{" declaration* "}" ;
 // varDecl → "var" IDENTIFIER ( "=" expression )? ";" ;
 // exprStmt → expression ";" ;
@@ -28,7 +32,9 @@ import (
 // comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term → factor ( ( "-" | "+" ) factor )* ;
 // factor → unary ( ( "/" | "*" ) unary )* ;
-// unary → ( "!" | "-" ) unary | primary ;
+// unary → ( "!" | "-" ) unary | call ;
+// call → primary ( "(" arguments? ")" )* ;
+// arguments → expression ( "," expression )* ;
 // primary → NUMBER | STRING | "true" | "false" | "nil"
 // 		|  "(" expression ")" | IDENTIFIER;
 
@@ -53,9 +59,11 @@ func (p *Parser) Parse() ([]ast.Stmt, bool) {
 }
 
 func (p *Parser) declaration() ast.Stmt {
-
 	if p.match(ast.TokenVar) {
 		return p.varDeclaration()
+	}
+	if p.match(ast.TokenFun) {
+		return p.function("function")
 	}
 	return p.statement()
 }
@@ -69,6 +77,32 @@ func (p *Parser) varDeclaration() ast.Stmt {
 	}
 	p.consume(ast.TokenSemicolon, "Expected token ';' after value")
 	return ast.VarStmt{Name: var_name, Initializer: initializer}
+}
+
+func (p *Parser) function(kind string) ast.FunctionStmt {
+	name := p.consume(ast.TokenIdentifier, "Expect "+kind+" name.")
+
+	p.consume(ast.TokenLeftParen, "Expect '(' after "+kind+" name.")
+	var parameters []ast.Token
+	if !p.check(ast.TokenRightParen) {
+		for {
+			if len(parameters) >= 255 {
+				p.error(p.peek(), "Can't have more than 255 paramters.")
+			}
+
+			arg := p.consume(ast.TokenIdentifier, "Expect parameter name.")
+			parameters = append(parameters, arg)
+			if !p.match(ast.TokenComma) {
+				break
+			}
+		}
+	}
+	p.consume(ast.TokenRightParen, "Expect ')' after parameters.")
+
+	p.consume(ast.TokenLeftBrace, "Expect '{' before "+kind+" body.")
+	body := p.block()
+
+	return ast.FunctionStmt{Name: name, Params: parameters, Body: body}
 }
 
 func (p *Parser) statement() ast.Stmt {
@@ -275,7 +309,39 @@ func (p *Parser) unary() ast.Expr {
 		return ast.UnaryExpr{Operator: operator, Right: right}
 	}
 
-	return p.primary()
+	return p.call()
+}
+
+func (p *Parser) call() ast.Expr {
+	expr := p.primary()
+
+	for {
+		if p.match(ast.TokenLeftParen) {
+			expr = p.finishCall(expr)
+		} else {
+			break
+		}
+	}
+
+	return expr
+}
+
+func (p *Parser) finishCall(callee ast.Expr) ast.Expr {
+	args := make([]ast.Expr, 0)
+	if !p.check(ast.TokenRightParen) {
+		for {
+			if len(args) >= 255 {
+				p.error(p.peek(), "Can't have more than 255 arguments.")
+			}
+			expr := p.expression()
+			args = append(args, expr)
+			if !p.match(ast.TokenComma) {
+				break
+			}
+		}
+	}
+	paren := p.consume(ast.TokenRightParen, "Expect ')' after arguments.")
+	return ast.CallExpr{Callee: callee, Paren: paren, Arguments: args}
 }
 
 func (p *Parser) primary() ast.Expr {
