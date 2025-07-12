@@ -98,7 +98,7 @@ func (interp *Interpreter) VisitWhileStmt(stmt ast.WhileStmt) interface{} {
 }
 
 func (interp *Interpreter) VisitFunctionStmt(stmt ast.FunctionStmt) interface{} {
-	function := function{declaration: stmt}
+	function := function{declaration: stmt, closure: interp.environment}
 	interp.environment.Define(stmt.Name.Lexeme, function)
 	return nil
 }

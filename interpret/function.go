@@ -12,6 +12,7 @@ type callable interface {
 
 type function struct {
 	declaration ast.FunctionStmt
+	closure     *env.Environment
 }
 
 func (f function) arity() int {
@@ -29,7 +30,7 @@ func (f function) call(interp *Interpreter, args []interface{}) (returnVal inter
 		}
 	}()
 
-	environment := env.CreateEnvironment(interp.environment)
+	environment := env.CreateEnvironment(f.closure)
 	for index, arg := range f.declaration.Params {
 		environment.Define(arg.Lexeme, args[index])
 	}
