@@ -18,7 +18,17 @@ func (f function) arity() int {
 	return len(f.declaration.Params)
 }
 
-func (f function) call(interp *Interpreter, args []interface{}) interface{} {
+func (f function) call(interp *Interpreter, args []interface{}) (returnVal interface{}) {
+	defer func() {
+		if err := recover(); err != nil {
+			if v, ok := err.(Return); ok {
+				returnVal = v.Value
+				return
+			}
+			panic(err)
+		}
+	}()
+
 	environment := env.CreateEnvironment(interp.environment)
 	for index, arg := range f.declaration.Params {
 		environment.Define(arg.Lexeme, args[index])

@@ -13,7 +13,7 @@ import (
 // function → IDENTIFIER "(" parameters? ")" block ;
 // parameters → IDENTIFIER ( "," IDENTIFIER )* ;
 // statement → exprStmt | printStmt | block | ifStmt
-// 			 | whileStmt | forStmt ;
+// 			 | whileStmt | forStmt | returnStmt ;
 // block → "{" declaration* "}" ;
 // varDecl → "var" IDENTIFIER ( "=" expression )? ";" ;
 // exprStmt → expression ";" ;
@@ -24,6 +24,7 @@ import (
 //			expression? ")" statement ;
 // ifStmt → "if" "(" expression ")" statement
 //          ( "else" statement )? ;
+// returnStmt → "return" expression? ";" ;
 // expression → assignment ;
 // assignment → IDENTIFIER "=" assignment | logic_or ;
 // logic_or → logic_and ( "or" logic_and )* ;
@@ -122,6 +123,9 @@ func (p *Parser) statement() ast.Stmt {
 	if p.match(ast.TokenFor) {
 		return p.forStatement()
 	}
+	if p.match(ast.TokenReturn) {
+		return p.returnStatement()
+	}
 	return p.expressionStatement()
 }
 
@@ -193,6 +197,17 @@ func (p *Parser) forStatement() ast.Stmt {
 	}
 
 	return body
+}
+
+func (p *Parser) returnStatement() ast.Stmt {
+	keyword := p.previous()
+	var value ast.Expr
+	if !p.check(ast.TokenSemicolon) {
+		value = p.expression()
+	}
+
+	p.consume(ast.TokenSemicolon, "Expect ';' after return value.")
+	return ast.ReturnStmt{Keyword: keyword, Value: value}
 }
 
 func (p *Parser) expressionStatement() ast.Stmt {

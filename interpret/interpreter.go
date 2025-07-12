@@ -20,6 +20,10 @@ type runtimeError struct {
 	message string
 }
 
+type Return struct {
+	Value interface{}
+}
+
 func (r runtimeError) Error() string {
 	return fmt.Sprintf("%s\n[line %d]", r.message, r.token.Line)
 }
@@ -97,6 +101,14 @@ func (interp *Interpreter) VisitFunctionStmt(stmt ast.FunctionStmt) interface{} 
 	function := function{declaration: stmt}
 	interp.environment.Define(stmt.Name.Lexeme, function)
 	return nil
+}
+
+func (interp *Interpreter) VisitReturnStmt(stmt ast.ReturnStmt) interface{} {
+	var value interface{}
+	if stmt.Value != nil {
+		value = interp.evaluate(stmt.Value)
+	}
+	panic(Return{Value: value})
 }
 
 func (interp *Interpreter) VisitAssignExpr(expr ast.AssignExpr) interface{} {
