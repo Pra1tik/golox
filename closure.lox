@@ -4,6 +4,7 @@ fun count() {
 i = i + 1;
 print i + j;
 }
+var j = 1;
 return count;
 }
 var counter = makeCounter();

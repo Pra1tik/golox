@@ -13,6 +13,7 @@ type Interpreter struct {
 	globals     *env.Environment
 	stdOut      io.Writer
 	stdErr      io.Writer
+	locals      map[ast.Expr]int
 }
 
 type runtimeError struct {
@@ -32,7 +33,7 @@ func CreateInterpreter(stdOut io.Writer, stdErr io.Writer) *Interpreter {
 	globals := env.CreateEnvironment(nil)
 	globals.Define("clock", clock{})
 
-	return &Interpreter{globals: globals, environment: globals, stdOut: stdOut, stdErr: stdErr}
+	return &Interpreter{globals: globals, environment: globals, stdOut: stdOut, stdErr: stdErr, locals: make(map[ast.Expr]int)}
 }
 
 func (interp *Interpreter) Interpret(stmts []ast.Stmt) (result interface{}, hadRuntimeError bool) {
@@ -113,7 +114,14 @@ func (interp *Interpreter) VisitReturnStmt(stmt ast.ReturnStmt) interface{} {
 
 func (interp *Interpreter) VisitAssignExpr(expr ast.AssignExpr) interface{} {
 	value := interp.evaluate(expr.Value)
-	interp.environment.Assign(expr.Name.Lexeme, value)
+	// interp.environment.Assign(expr.Name.Lexeme, value)
+	if distance, ok := interp.locals[expr]; ok {
+		interp.environment.AssignAt(distance, expr.Name.Lexeme, value)
+	} else {
+		if err := interp.globals.Assign(expr.Name.Lexeme, value); err != nil {
+			panic(err)
+		}
+	}
 	return value
 }
 
@@ -143,11 +151,19 @@ func (interp *Interpreter) VisitUnaryExpr(expr ast.UnaryExpr) interface{} {
 }
 
 func (interp *Interpreter) VisitVariableExpr(expr ast.VariableExpr) interface{} {
-	val, err := interp.environment.Get(expr.Name.Lexeme)
+	// val, err := interp.environment.Get(expr.Name.Lexeme)
+	val, err := interp.lookupVariable(expr.Name, expr)
 	if err != nil {
 		panic(err)
 	}
 	return val
+}
+
+func (interp *Interpreter) lookupVariable(name ast.Token, expr ast.Expr) (interface{}, error) {
+	if distance, ok := interp.locals[expr]; ok {
+		return interp.environment.GetAt(distance, name.Lexeme), nil
+	}
+	return interp.globals.Get(name.Lexeme)
 }
 
 func (interp *Interpreter) VisitCallExpr(expr ast.CallExpr) interface{} {
@@ -270,6 +286,10 @@ func (interp *Interpreter) stringify(value interface{}) string {
 		return "nil"
 	}
 	return fmt.Sprint(value)
+}
+
+func (interp *Interpreter) Resolve(expr ast.Expr, depth int) {
+	interp.locals[expr] = depth
 }
 
 func (interp *Interpreter) error(token ast.Token, message string) {

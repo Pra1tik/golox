@@ -10,6 +10,7 @@ import (
 	"github.com/Pra1tik/golox/interpret"
 	"github.com/Pra1tik/golox/lexer"
 	"github.com/Pra1tik/golox/parser"
+	"github.com/Pra1tik/golox/resolve"
 )
 
 var (
@@ -20,16 +21,17 @@ var (
 )
 
 func main() {
-	args := os.Args
-	if len(args) > 2 {
-		fmt.Println("Usage: golox [script]")
-	} else if len(args) == 2 {
-		fmt.Println("Run script from file")
-		runFile(args[1])
-	} else {
-		fmt.Println("Interactive mode")
-		runPrompt()
-	}
+	// args := os.Args
+	// if len(args) > 2 {
+	// 	fmt.Println("Usage: golox [script]")
+	// } else if len(args) == 2 {
+	// 	fmt.Println("Run script from file")
+	// 	runFile(args[1])
+	// } else {
+	// 	fmt.Println("Interactive mode")
+	// 	runPrompt()
+	// }
+	runFile("resolver_test.lox")
 }
 
 func checkError(err error) {
@@ -85,6 +87,14 @@ func run(source string) interface{} {
 	}
 
 	interpreter := interpret.CreateInterpreter(stdOut, stdErr)
+
+	resolver := resolve.CreateResolver(interpreter, stdErr)
+	hadError = resolver.ResolveStmts(statements)
+
+	if hadError {
+		return nil
+	}
+
 	var result interface{}
 	result, hadRuntimeError = interpreter.Interpret(statements)
 	return result
