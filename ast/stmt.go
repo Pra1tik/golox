@@ -75,6 +75,15 @@ func (b ReturnStmt) Accept(visitor StmtVisitor) interface{} {
 	return visitor.VisitReturnStmt(b)
 }
 
+type ClassStmt struct {
+	Name    Token
+	Methods []FunctionStmt
+}
+
+func (b ClassStmt) Accept(visitor StmtVisitor) interface{} {
+	return visitor.VisitClassStmt(b)
+}
+
 type StmtVisitor interface {
 	VisitExpressionStmt(stmt ExpressionStmt) interface{}
 	VisitPrintStmt(stmt PrintStmt) interface{}
@@ -84,4 +93,5 @@ type StmtVisitor interface {
 	VisitWhileStmt(stmt WhileStmt) interface{}
 	VisitFunctionStmt(stmt FunctionStmt) interface{}
 	VisitReturnStmt(stmt ReturnStmt) interface{}
+	VisitClassStmt(stmt ClassStmt) interface{}
 }

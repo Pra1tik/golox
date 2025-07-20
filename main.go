@@ -21,17 +21,17 @@ var (
 )
 
 func main() {
-	// args := os.Args
-	// if len(args) > 2 {
-	// 	fmt.Println("Usage: golox [script]")
-	// } else if len(args) == 2 {
-	// 	fmt.Println("Run script from file")
-	// 	runFile(args[1])
-	// } else {
-	// 	fmt.Println("Interactive mode")
-	// 	runPrompt()
-	// }
-	runFile("resolver_test.lox")
+	args := os.Args
+	if len(args) > 2 {
+		fmt.Println("Usage: golox [script]")
+	} else if len(args) == 2 {
+		fmt.Println("Run script from file")
+		runFile(args[1])
+	} else {
+		fmt.Println("Interactive mode")
+		runPrompt()
+	}
+	// runFile("resolver_test.lox")
 }
 
 func checkError(err error) {

@@ -100,6 +100,12 @@ func (r *Resolver) VisitFunctionStmt(stmt ast.FunctionStmt) interface{} {
 	return nil
 }
 
+func (r *Resolver) VisitClassStmt(stmt ast.ClassStmt) interface{} {
+	r.declare(stmt.Name)
+	r.define(stmt.Name)
+	return nil
+}
+
 func (r *Resolver) VisitExpressionStmt(stmt ast.ExpressionStmt) interface{} {
 	r.resolveExpr(stmt.Expr)
 	return nil

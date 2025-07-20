@@ -104,6 +104,15 @@ func (interp *Interpreter) VisitFunctionStmt(stmt ast.FunctionStmt) interface{} 
 	return nil
 }
 
+func (interp *Interpreter) VisitClassStmt(stmt ast.ClassStmt) interface{} {
+	interp.environment.Define(stmt.Name.Lexeme, nil)
+	class := class{
+		name: stmt.Name.Lexeme,
+	}
+	interp.environment.Assign(stmt.Name.Lexeme, class)
+	return nil
+}
+
 func (interp *Interpreter) VisitReturnStmt(stmt ast.ReturnStmt) interface{} {
 	var value interface{}
 	if stmt.Value != nil {

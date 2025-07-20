@@ -8,10 +8,11 @@ import (
 )
 
 // program → declaration* EOF ;
-// declaration → varDecl | statement | funDecl ;
+// declaration → varDecl | statement | funDecl | classDecl ;
 // funDecl → "fun" function ;
 // function → IDENTIFIER "(" parameters? ")" block ;
 // parameters → IDENTIFIER ( "," IDENTIFIER )* ;
+// classDecl → "class" IDENTIFIER "{" function* "}" ;
 // statement → exprStmt | printStmt | block | ifStmt
 // 			 | whileStmt | forStmt | returnStmt ;
 // block → "{" declaration* "}" ;
@@ -66,6 +67,9 @@ func (p *Parser) declaration() ast.Stmt {
 	if p.match(ast.TokenFun) {
 		return p.function("function")
 	}
+	if p.match(ast.TokenClass) {
+		return p.classDeclaration()
+	}
 	return p.statement()
 }
 
@@ -104,6 +108,23 @@ func (p *Parser) function(kind string) ast.FunctionStmt {
 	body := p.block()
 
 	return ast.FunctionStmt{Name: name, Params: parameters, Body: body}
+}
+
+func (p *Parser) classDeclaration() ast.Stmt {
+	name := p.consume(ast.TokenIdentifier, "Expect class name.")
+	p.consume(ast.TokenLeftBrace, "Expect '{' before class body.")
+
+	methods := make([]ast.FunctionStmt, 0)
+	for !p.check(ast.TokenRightBrace) && !p.isAtEnd() {
+		method := p.function("method")
+		methods = append(methods, method)
+	}
+
+	p.consume(ast.TokenRightBrace, "Expect '}' after class body.")
+	return ast.ClassStmt{
+		Name:    name,
+		Methods: methods,
+	}
 }
 
 func (p *Parser) statement() ast.Stmt {
