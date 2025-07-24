@@ -45,6 +45,7 @@ type functionType int
 const (
 	functionTypeNone functionType = iota
 	functionTypeFunction
+	functionTypeMethod
 )
 
 type Resolver struct {
@@ -103,6 +104,10 @@ func (r *Resolver) VisitFunctionStmt(stmt ast.FunctionStmt) interface{} {
 func (r *Resolver) VisitClassStmt(stmt ast.ClassStmt) interface{} {
 	r.declare(stmt.Name)
 	r.define(stmt.Name)
+
+	for _, method := range stmt.Methods {
+		r.resolveFunction(method, functionTypeMethod)
+	}
 	return nil
 }
 
@@ -190,6 +195,17 @@ func (r *Resolver) VisitLogicalExpr(expr ast.LogicalExpr) interface{} {
 
 func (r *Resolver) VisitUnaryExpr(expr ast.UnaryExpr) interface{} {
 	r.resolveExpr(expr.Right)
+	return nil
+}
+
+func (r *Resolver) VisitGetExpr(expr ast.GetExpr) interface{} {
+	r.resolveExpr(expr.Object) // property itself is dynamically evaluated so no need to resolve expr.Name
+	return nil
+}
+
+func (r *Resolver) VisitSetExpr(expr ast.SetExpr) interface{} {
+	r.resolveExpr(expr.Value)
+	r.resolveExpr(expr.Object)
 	return nil
 }
 

@@ -31,7 +31,7 @@ func main() {
 		fmt.Println("Interactive mode")
 		runPrompt()
 	}
-	// runFile("resolver_test.lox")
+	// runFile("class_instance.lox")
 }
 
 func checkError(err error) {

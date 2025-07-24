@@ -106,8 +106,19 @@ func (interp *Interpreter) VisitFunctionStmt(stmt ast.FunctionStmt) interface{} 
 
 func (interp *Interpreter) VisitClassStmt(stmt ast.ClassStmt) interface{} {
 	interp.environment.Define(stmt.Name.Lexeme, nil)
+
+	methods := make(map[string]function, len(stmt.Methods))
+	for _, method := range stmt.Methods {
+		fn := function{
+			declaration: method,
+			closure:     interp.environment,
+		}
+		methods[method.Name.Lexeme] = fn
+	}
+
 	class := class{
-		name: stmt.Name.Lexeme,
+		name:    stmt.Name.Lexeme,
+		methods: methods,
 	}
 	interp.environment.Assign(stmt.Name.Lexeme, class)
 	return nil
@@ -156,6 +167,32 @@ func (interp *Interpreter) VisitUnaryExpr(expr ast.UnaryExpr) interface{} {
 	case ast.TokenBang:
 		return !interp.isTruthy(right)
 	}
+	return nil
+}
+
+func (interp *Interpreter) VisitGetExpr(expr ast.GetExpr) interface{} {
+	object := interp.evaluate(expr.Object)
+	if instance, ok := object.(*instance); ok {
+		val, err := instance.Get(interp, expr.Name)
+		if err != nil {
+			panic(err)
+		}
+		return val
+	}
+	interp.error(expr.Name, "Only instances have properties.")
+	return nil
+}
+
+func (interp *Interpreter) VisitSetExpr(expr ast.SetExpr) interface{} {
+	object := interp.evaluate(expr.Object)
+
+	instance, ok := object.(*instance) //doesnt work if not pointer?
+	if !ok {
+		interp.error(expr.Name, "Only instances have fields")
+	}
+
+	value := interp.evaluate(expr.Value)
+	instance.set(expr.Name, value)
 	return nil
 }
 

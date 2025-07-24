@@ -27,7 +27,7 @@ import (
 //          ( "else" statement )? ;
 // returnStmt → "return" expression? ";" ;
 // expression → assignment ;
-// assignment → IDENTIFIER "=" assignment | logic_or ;
+// assignment → ( call "." )? IDENTIFIER "=" assignment | logic_or ;
 // logic_or → logic_and ( "or" logic_and )* ;
 // logic_and → equality ( "and" equality )* ;
 // equality → comparison ( ( "!=" | "==" ) comparison )* ;
@@ -35,7 +35,7 @@ import (
 // term → factor ( ( "-" | "+" ) factor )* ;
 // factor → unary ( ( "/" | "*" ) unary )* ;
 // unary → ( "!" | "-" ) unary | call ;
-// call → primary ( "(" arguments? ")" )* ;
+// call → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
 // arguments → expression ( "," expression )* ;
 // primary → NUMBER | STRING | "true" | "false" | "nil"
 // 		|  "(" expression ")" | IDENTIFIER;
@@ -260,6 +260,12 @@ func (p *Parser) assignment() ast.Expr {
 
 		if varExpr, ok := expr.(ast.VariableExpr); ok {
 			return ast.AssignExpr{Name: varExpr.Name, Value: value}
+		} else if getExpr, ok := expr.(ast.GetExpr); ok {
+			return ast.SetExpr{
+				Object: getExpr.Object,
+				Name:   getExpr.Name,
+				Value:  value,
+			}
 		}
 
 		p.error(equals, "Invalid assignment target.")
@@ -354,6 +360,9 @@ func (p *Parser) call() ast.Expr {
 	for {
 		if p.match(ast.TokenLeftParen) {
 			expr = p.finishCall(expr)
+		} else if p.match(ast.TokenDot) {
+			name := p.consume(ast.TokenIdentifier, "Expect property name after '.'.")
+			expr = ast.GetExpr{Object: expr, Name: name}
 		} else {
 			break
 		}
