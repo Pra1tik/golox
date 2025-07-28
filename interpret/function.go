@@ -39,6 +39,15 @@ func (f function) call(interp *Interpreter, args []interface{}) (returnVal inter
 	return nil
 }
 
+func (f function) bind(i *instance) function {
+	environment := env.CreateEnvironment(f.closure)
+	environment.Define("this", i)
+	return function{
+		declaration: f.declaration,
+		closure:     environment,
+	}
+}
+
 func (f function) String() string {
 	return "<fn " + f.declaration.Name.Lexeme + ">"
 }

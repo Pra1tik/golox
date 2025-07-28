@@ -43,7 +43,7 @@ func (i *instance) Get(interpreter *Interpreter, name ast.Token) (interface{}, e
 
 	method := i.class.findMethod(name.Lexeme)
 	if method != nil {
-		return method, nil
+		return method.bind(i), nil
 	}
 
 	return nil, runtimeError{token: name, message: fmt.Sprintf("Undefined property '%s'.'", name.Lexeme)}

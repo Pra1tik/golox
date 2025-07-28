@@ -401,6 +401,8 @@ func (p *Parser) primary() ast.Expr {
 		return ast.LiteralExpr{Value: p.previous().Literal}
 	case p.match(ast.TokenIdentifier):
 		return ast.VariableExpr{Name: p.previous()}
+	case p.match(ast.TokenThis):
+		return ast.ThisExpr{Keyword: p.previous()}
 	case p.match(ast.TokenLeftParen):
 		expr := p.expression()
 		p.consume(ast.TokenRightParen, "Expected ) after expression.")

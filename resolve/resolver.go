@@ -26,6 +26,10 @@ func (s scope) has(name string) (declared bool, defined bool) {
 	return true, v
 }
 
+func (s scope) set(name string) {
+	s[name] = true
+}
+
 type scopes []scope
 
 func (s *scopes) push(scope scope) {
@@ -105,9 +109,15 @@ func (r *Resolver) VisitClassStmt(stmt ast.ClassStmt) interface{} {
 	r.declare(stmt.Name)
 	r.define(stmt.Name)
 
+	r.beginScope()
+	r.scopes.peek().set("this")
+
 	for _, method := range stmt.Methods {
 		r.resolveFunction(method, functionTypeMethod)
 	}
+
+	r.endScope()
+
 	return nil
 }
 
@@ -184,6 +194,11 @@ func (r *Resolver) VisitGroupingExpr(expr ast.GroupingExpr) interface{} {
 }
 
 func (r *Resolver) VisitLiteralExpr(expr ast.LiteralExpr) interface{} {
+	return nil
+}
+
+func (r *Resolver) VisitThisExpr(expr ast.ThisExpr) interface{} {
+	r.resolveLocal(expr, expr.Keyword)
 	return nil
 }
 

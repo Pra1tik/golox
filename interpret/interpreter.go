@@ -196,6 +196,14 @@ func (interp *Interpreter) VisitSetExpr(expr ast.SetExpr) interface{} {
 	return nil
 }
 
+func (interp *Interpreter) VisitThisExpr(expr ast.ThisExpr) interface{} {
+	val, err := interp.lookupVariable(expr.Keyword, expr)
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
+
 func (interp *Interpreter) VisitVariableExpr(expr ast.VariableExpr) interface{} {
 	// val, err := interp.environment.Get(expr.Name.Lexeme)
 	val, err := interp.lookupVariable(expr.Name, expr)
