@@ -11,8 +11,9 @@ type callable interface {
 }
 
 type function struct {
-	declaration ast.FunctionStmt
-	closure     *env.Environment
+	declaration   ast.FunctionStmt
+	closure       *env.Environment
+	isInitializer bool
 }
 
 func (f function) arity() int {
@@ -23,6 +24,11 @@ func (f function) call(interp *Interpreter, args []interface{}) (returnVal inter
 	defer func() {
 		if err := recover(); err != nil {
 			if v, ok := err.(Return); ok {
+				if f.isInitializer {
+					returnVal = f.closure.GetAt(0, "this")
+					return
+				}
+
 				returnVal = v.Value
 				return
 			}
@@ -36,6 +42,11 @@ func (f function) call(interp *Interpreter, args []interface{}) (returnVal inter
 	}
 
 	interp.executeBlock(f.declaration.Body, environment)
+
+	if f.isInitializer {
+		return f.closure.GetAt(0, "this")
+	}
+
 	return nil
 }
 
@@ -43,8 +54,9 @@ func (f function) bind(i *instance) function {
 	environment := env.CreateEnvironment(f.closure)
 	environment.Define("this", i)
 	return function{
-		declaration: f.declaration,
-		closure:     environment,
+		declaration:   f.declaration,
+		closure:       environment,
+		isInitializer: f.isInitializer,
 	}
 }
 

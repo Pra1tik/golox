@@ -50,6 +50,14 @@ const (
 	functionTypeNone functionType = iota
 	functionTypeFunction
 	functionTypeMethod
+	functionTypeInitializer
+)
+
+type classType int
+
+const (
+	classTypeNone classType = iota
+	classTypeClass
 )
 
 type Resolver struct {
@@ -57,6 +65,7 @@ type Resolver struct {
 
 	scopes          scopes
 	currentFunction functionType
+	currentClass    classType
 
 	stdErr   io.Writer
 	hadError bool
@@ -99,13 +108,17 @@ func (r *Resolver) VisitVarStmt(stmt ast.VarStmt) interface{} {
 
 func (r *Resolver) VisitFunctionStmt(stmt ast.FunctionStmt) interface{} {
 	r.declare(stmt.Name)
-	r.define((stmt.Name))
+	r.define(stmt.Name)
 
 	r.resolveFunction(stmt, functionTypeFunction)
 	return nil
 }
 
 func (r *Resolver) VisitClassStmt(stmt ast.ClassStmt) interface{} {
+	enclosingClass := r.currentClass
+	defer func() { r.currentClass = enclosingClass }()
+	r.currentClass = classTypeClass
+
 	r.declare(stmt.Name)
 	r.define(stmt.Name)
 
@@ -113,7 +126,11 @@ func (r *Resolver) VisitClassStmt(stmt ast.ClassStmt) interface{} {
 	r.scopes.peek().set("this")
 
 	for _, method := range stmt.Methods {
-		r.resolveFunction(method, functionTypeMethod)
+		declaration := functionTypeMethod
+		if method.Name.Lexeme == "init" {
+			declaration = functionTypeInitializer
+		}
+		r.resolveFunction(method, declaration)
 	}
 
 	r.endScope()
@@ -146,6 +163,9 @@ func (r *Resolver) VisitReturnStmt(stmt ast.ReturnStmt) interface{} {
 	}
 
 	if stmt.Value != nil {
+		if r.currentFunction == functionTypeInitializer {
+			r.error(stmt.Keyword, "Can't return value from initializer.")
+		}
 		r.resolveExpr(stmt.Value)
 	}
 	return nil
@@ -198,6 +218,10 @@ func (r *Resolver) VisitLiteralExpr(expr ast.LiteralExpr) interface{} {
 }
 
 func (r *Resolver) VisitThisExpr(expr ast.ThisExpr) interface{} {
+	if r.currentClass == classTypeNone {
+		r.error(expr.Keyword, "Can't use 'this' outside of a class.")
+	}
+
 	r.resolveLocal(expr, expr.Keyword)
 	return nil
 }

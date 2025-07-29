@@ -12,11 +12,21 @@ type class struct {
 }
 
 func (c class) arity() int {
-	return 0
+	initializer := c.findMethod("init")
+	if initializer == nil {
+		return 0
+	}
+	return initializer.arity()
 }
 
 func (c class) call(interpreter *Interpreter, arguments []interface{}) interface{} {
 	in := &instance{class: c}
+	initializer := c.findMethod("init")
+
+	if initializer != nil {
+		initializer.bind(in).call(interpreter, arguments)
+	}
+
 	return in
 }
 
@@ -37,7 +47,7 @@ type instance struct {
 }
 
 func (i *instance) Get(interpreter *Interpreter, name ast.Token) (interface{}, error) {
-	if val, ok := i.fields[name.Lexeme]; ok { //field take precendence over method
+	if val, ok := i.fields[name.Lexeme]; ok { // field take precendence over method
 		return val, nil
 	}
 

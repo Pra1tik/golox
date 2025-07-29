@@ -99,7 +99,7 @@ func (interp *Interpreter) VisitWhileStmt(stmt ast.WhileStmt) interface{} {
 }
 
 func (interp *Interpreter) VisitFunctionStmt(stmt ast.FunctionStmt) interface{} {
-	function := function{declaration: stmt, closure: interp.environment}
+	function := function{declaration: stmt, closure: interp.environment, isInitializer: false}
 	interp.environment.Define(stmt.Name.Lexeme, function)
 	return nil
 }
@@ -110,8 +110,9 @@ func (interp *Interpreter) VisitClassStmt(stmt ast.ClassStmt) interface{} {
 	methods := make(map[string]function, len(stmt.Methods))
 	for _, method := range stmt.Methods {
 		fn := function{
-			declaration: method,
-			closure:     interp.environment,
+			declaration:   method,
+			closure:       interp.environment,
+			isInitializer: method.Name.Lexeme == "init",
 		}
 		methods[method.Name.Lexeme] = fn
 	}
