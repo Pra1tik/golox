@@ -58,6 +58,7 @@ type classType int
 const (
 	classTypeNone classType = iota
 	classTypeClass
+	classTypeSubClass
 )
 
 type Resolver struct {
@@ -126,6 +127,7 @@ func (r *Resolver) VisitClassStmt(stmt ast.ClassStmt) interface{} {
 		r.error(stmt.Superclass.Name, "A class can't inherit from itself.")
 	}
 	if stmt.Superclass != nil {
+		r.currentClass = classTypeSubClass
 		r.resolveExpr(stmt.Superclass)
 	}
 
@@ -240,6 +242,12 @@ func (r *Resolver) VisitThisExpr(expr ast.ThisExpr) interface{} {
 }
 
 func (r *Resolver) VisitSuperExpr(expr ast.SuperExpr) interface{} {
+	if r.currentClass == classTypeNone {
+		r.error(expr.Keyword, "Can't use 'super' outside of a class.")
+	} else if r.currentClass != classTypeSubClass {
+		r.error(expr.Keyword, "Can't use 'super' in a class with no superclass")
+	}
+
 	r.resolveLocal(expr, expr.Keyword)
 	return nil
 }
