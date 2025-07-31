@@ -109,6 +109,15 @@ func (b ThisExpr) Accept(visitor ExprVisitor) interface{} {
 	return visitor.VisitThisExpr(b)
 }
 
+type SuperExpr struct {
+	Keyword Token
+	Method  Token
+}
+
+func (b SuperExpr) Accept(visitor ExprVisitor) interface{} {
+	return visitor.VisitSuperExpr(b)
+}
+
 type ExprVisitor interface {
 	VisitBinaryExpr(expr BinaryExpr) interface{}
 	VisitGroupingExpr(expr GroupingExpr) interface{}
@@ -121,4 +130,5 @@ type ExprVisitor interface {
 	VisitGetExpr(expr GetExpr) interface{}
 	VisitSetExpr(expr SetExpr) interface{}
 	VisitThisExpr(expr ThisExpr) interface{}
+	VisitSuperExpr(expr SuperExpr) interface{}
 }

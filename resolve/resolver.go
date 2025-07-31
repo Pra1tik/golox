@@ -122,6 +122,19 @@ func (r *Resolver) VisitClassStmt(stmt ast.ClassStmt) interface{} {
 	r.declare(stmt.Name)
 	r.define(stmt.Name)
 
+	if stmt.Superclass != nil && stmt.Name.Lexeme == stmt.Superclass.Name.Lexeme {
+		r.error(stmt.Superclass.Name, "A class can't inherit from itself.")
+	}
+	if stmt.Superclass != nil {
+		r.resolveExpr(stmt.Superclass)
+	}
+
+	if stmt.Superclass != nil {
+		r.beginScope()
+		defer func() { r.endScope() }()
+		r.scopes.peek().set("super")
+	}
+
 	r.beginScope()
 	r.scopes.peek().set("this")
 
@@ -222,6 +235,11 @@ func (r *Resolver) VisitThisExpr(expr ast.ThisExpr) interface{} {
 		r.error(expr.Keyword, "Can't use 'this' outside of a class.")
 	}
 
+	r.resolveLocal(expr, expr.Keyword)
+	return nil
+}
+
+func (r *Resolver) VisitSuperExpr(expr ast.SuperExpr) interface{} {
 	r.resolveLocal(expr, expr.Keyword)
 	return nil
 }

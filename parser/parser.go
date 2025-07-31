@@ -12,7 +12,8 @@ import (
 // funDecl → "fun" function ;
 // function → IDENTIFIER "(" parameters? ")" block ;
 // parameters → IDENTIFIER ( "," IDENTIFIER )* ;
-// classDecl → "class" IDENTIFIER "{" function* "}" ;
+// classDecl → "class" IDENTIFIER ( "<" IDENTIFIER )?
+// 				 "{" function* "}" ;
 // statement → exprStmt | printStmt | block | ifStmt
 // 			 | whileStmt | forStmt | returnStmt ;
 // block → "{" declaration* "}" ;
@@ -37,8 +38,9 @@ import (
 // unary → ( "!" | "-" ) unary | call ;
 // call → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
 // arguments → expression ( "," expression )* ;
-// primary → NUMBER | STRING | "true" | "false" | "nil"
-// 		|  "(" expression ")" | IDENTIFIER;
+// primary → NUMBER | STRING | "true" | "false" | "nil" | "this"
+// 		|  "(" expression ")" | IDENTIFIER
+// 		| "super" "." IDENTIFIER ;
 
 type Parser struct {
 	tokens   []ast.Token
@@ -112,6 +114,13 @@ func (p *Parser) function(kind string) ast.FunctionStmt {
 
 func (p *Parser) classDeclaration() ast.Stmt {
 	name := p.consume(ast.TokenIdentifier, "Expect class name.")
+
+	var superclass *ast.VariableExpr
+	if p.match(ast.TokenLess) {
+		p.consume(ast.TokenIdentifier, "Expect superclass name.")
+		superclass = &ast.VariableExpr{Name: p.previous()}
+	}
+
 	p.consume(ast.TokenLeftBrace, "Expect '{' before class body.")
 
 	methods := make([]ast.FunctionStmt, 0)
@@ -122,8 +131,9 @@ func (p *Parser) classDeclaration() ast.Stmt {
 
 	p.consume(ast.TokenRightBrace, "Expect '}' after class body.")
 	return ast.ClassStmt{
-		Name:    name,
-		Methods: methods,
+		Name:       name,
+		Methods:    methods,
+		Superclass: superclass,
 	}
 }
 
@@ -403,6 +413,11 @@ func (p *Parser) primary() ast.Expr {
 		return ast.VariableExpr{Name: p.previous()}
 	case p.match(ast.TokenThis):
 		return ast.ThisExpr{Keyword: p.previous()}
+	case p.match(ast.TokenSuper):
+		keyword := p.previous()
+		p.consume(ast.TokenDot, "Expect '.' after 'super'.")
+		method := p.consume(ast.TokenIdentifier, "Expect superclass method name.")
+		return ast.SuperExpr{Keyword: keyword, Method: method}
 	case p.match(ast.TokenLeftParen):
 		expr := p.expression()
 		p.consume(ast.TokenRightParen, "Expected ) after expression.")

@@ -7,8 +7,9 @@ import (
 )
 
 type class struct {
-	name    string
-	methods map[string]function
+	name       string
+	methods    map[string]function
+	superclass *class
 }
 
 func (c class) arity() int {
@@ -34,6 +35,11 @@ func (c class) findMethod(name string) *function {
 	if method, ok := c.methods[name]; ok {
 		return &method
 	}
+
+	if c.superclass != nil {
+		return c.superclass.findMethod(name)
+	}
+
 	return nil
 }
 
